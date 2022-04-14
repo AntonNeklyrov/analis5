@@ -2,8 +2,6 @@ let size = 0;
 
 let maxCount = 0;
 
-let array = [];
-
 const $random = document.querySelector('#random');
 
 const $inputsContainer = document.querySelector('.inputs-container');
@@ -92,9 +90,11 @@ $random.addEventListener('click', () => {
 
 });
 
+
 const getArray = () => {
 
   let arr1 = [];
+  let array = [];
 
   const $mb2 = document.querySelectorAll('.mb-2');
 
@@ -114,10 +114,11 @@ const getArray = () => {
 
   }
 
+  return array;
 }
 
 const calculat = () => {
-  getArray();
+  let array = getArray();
   let matrSmej = new Array(size);
   for (let i = 0; i < size; i++) {
     matrSmej[i] = new Array(size);
@@ -135,351 +136,148 @@ const calculat = () => {
     }
   }
 
-  let ierarhLevelMatr = [];
-  let ierarhMatr = new Array(matrSmej.length);
-  let notUsedV = matrSmej.length;
-  ierarhLevelMatr.push([]);
+  if (checkForContours(matrSmej, matrSmej.length)) {
+    document.writeln("В графе есть цыклы!");
 
-  for (let i = 0; i < matrSmej.length; i++) {
-    ierarhMatr[i] = new Array(matrSmej.length);
-  }
+  } else {
 
-  for (let i = 0; i < matrSmej.length; i++) {
-    for (let j = 0; j < matrSmej[i].length; j++) {
-      ierarhMatr[i][j] = 0;
+    let notUsedV = [];
+    let topologiesArray = [];
+    let reachabilityMatrix = getReachabilityMatrix(array);
+    let sizeTopologiesArray = 0;
+
+
+    for (let i = 0; i < array.length; i++) {
+      notUsedV.push(i);
     }
-  }
 
-  for (let i = 0; i < matrSmej.length; i++) {//поиск нулевого иерархического уровня
-    for (let j = 0; j < matrSmej[i].length; j++) {
-      if (matrSmej[j][i] === 0) {
-        if (j === (matrSmej.length - 1)) {
-          ierarhLevelMatr[0].push(i);
-          notUsedV--;
+    while (notUsedV.length !== 0) {
+      let achievable = [];  //достяжимые R
+      let contrAchievable = []; //контрдостяжимые Q
+
+      for (let i = 0; i < reachabilityMatrix.length; i++) {
+        if (reachabilityMatrix[notUsedV[0]][i] === 1) {
+          achievable.push(i);
         }
-      } else break;
-    }
-  }
-
-  let flag = true;
-  ierarhLevelMatr.push([]);
-
-  for (let i = 0; i < ierarhLevelMatr[0].length; i++) {//поиск первого иерархического уровня
-    for (let j = 0; j < matrSmej.length; j++) {
-
-      flag = true;
-
-      if (matrSmej[ierarhLevelMatr[0][i]][j] === 1) {
-        for (let k = 0; k < matrSmej.length; k++) {
-          if (matrSmej[k][j] === 1 && k !== ierarhLevelMatr[0][i]) {
-            flag = false;
-            break;
-          }
-        }
-
-        if (flag === true) {
-          ierarhLevelMatr[1].push(j);
-          notUsedV--;
-        }
-
-      }
-    }
-  }
-
-  console.log(ierarhLevelMatr[1]);
-  let lastLevel = 0;
-
-  while (notUsedV !== 0) {//пока не использованы все вершины
-
-    ierarhLevelMatr.push([]);
-    lastLevel++;
-
-    for (let i = 0; i < ierarhLevelMatr[lastLevel].length; i++) { //проходим по вершинам последнего иерархического уровня
-      for (let j = 0; j < matrSmej.length; j++) {//проходим по столбцам вершина матрицы последнего иерархического уровня     j  - столбец
-        flag = false;
-        if (matrSmej[ierarhLevelMatr[lastLevel][i]][j] === 1) {//если нашли вершину смежную с матрицей последнего иерархического уровня
-          flag = true;
-          for (let k = 0; k < matrSmej.length; k++) {//проходим по строкам  k - строка
-            if (matrSmej[k][j] === 1 && k !== ierarhLevelMatr[lastLevel][i]) {//если нашли вершину из матрицы иерархических уровней
-              flag = false;
-              for (let n = 0; n < (ierarhLevelMatr.length - 1); n++) {//проходимся по строкам матрицы иерархических уровней не включая последний пустой уровень
-                for (let m = 0; m < ierarhLevelMatr[n].length; m++) {//проходимся по столбцам матрицы иерархических уровеней
-                  if (k === ierarhLevelMatr[n][m]) {//нашли в матрице иерархических уровней вершину
-                    flag = true;
-                    break;
-                  }
-                }
-                if (flag === true) {
-                  break;
-                }
-              }
-            }
-            if (flag === false) {
-              break;
-            }
-          }
-        }
-        if (flag === true) {
-          ierarhLevelMatr[lastLevel + 1].push(j);
-          notUsedV--;
+        if (reachabilityMatrix[i][notUsedV[0]] === 1) {
+          contrAchievable.push(i);
         }
       }
-    }
-  }
 
-  let newIerarhLevelMatr = [];
-  let pos = 0;
+      let intersection = achievable.filter(value => contrAchievable.includes(value));
 
-  for (let i = 0; i < ierarhLevelMatr.length; i++) {
-    for (let j = 0; j < ierarhLevelMatr[i].length; j++) {
-      newIerarhLevelMatr.push([pos++, ierarhLevelMatr[i][j]]);
-    }
-  }
+      topologiesArray[sizeTopologiesArray] = [];
 
-  let newRow = 0;
-  let newColumn = 0;
+      if (intersection.length !== 0) {
 
-  for (let i = 0; i < matrSmej.length; i++) {
-    for (let k = 0; k < matrSmej.length; k++) {
-      if (newIerarhLevelMatr[k][1] === i) {
-        newRow = newIerarhLevelMatr[k][0];
-        break;
-      }
-    }
-    for (let j = 0; j < matrSmej.length; j++) {
-      if (matrSmej[i][j] === 1) {
-        for (let m = 0; m < matrSmej.length; m++) {
-          if (newIerarhLevelMatr[m][1] === j) {
-            newColumn = newIerarhLevelMatr[m][0];
-            break;
-          }
-        }
-        ierarhMatr[newRow][newColumn] = 1;
-      }
-    }
-  }
 
-  let rightInc = new Array(ierarhMatr.length);
+        topologiesArray[sizeTopologiesArray].push(intersection);
+        console.log(intersection);
 
-  for (let i = 0; i < matrSmej.length; i++) {
-    rightInc[i] = [];
-  }
-
-  for (let i = 0; i < matrSmej.length; i++) {
-    for (let j = 0; j < matrSmej.length; j++) {
-      if (ierarhMatr[i][j] === 1) {
-        rightInc[i].push(j);
-      }
-    }
-  }
-
-  let str1 = 'Иерархические уровни' + '<br>';
-
-  let sizeMatr = 1;
-  for (let i = 0; i < ierarhLevelMatr.length; i++) {
-
-    str1 += 'Уровень ' + i + '={';
-
-    if (ierarhLevelMatr[i].length === 0) {
-      str1 += '';
-    } else {
-      for (let j = 0; j < ierarhLevelMatr[i].length; j++) {
-        if (j !== ierarhLevelMatr[i].length - 1) {
-          str1 += sizeMatr + '(' + (ierarhLevelMatr[i][j] + 1) + ')' + ',';
-        } else str1 += sizeMatr + '(' + (ierarhLevelMatr[i][j] + 1) + ')';
-        sizeMatr++;
-      }
-    }
-    str1 += '}' + '<br>';
-  }
-
-  str1 += '<br>';
-  document.writeln(str1);
-
-  let str2 = 'Множество правых инциденций' + '<br>';
-
-  for (let i = 0; i < rightInc.length; i++) {
-
-    str2 += 'G+(' + (i + 1) + '(' + (newIerarhLevelMatr[i][1] + 1) + ')' + ')' + '={';
-
-    if (rightInc[i].length === 0) {
-      str2 += '';
-    } else
-      for (let j = 0; j < rightInc[i].length; j++) {
-        if (rightInc[i][j] !== undefined) {
-          if (j !== rightInc[i].length - 1) {
-            str2 += (rightInc[i][j] + 1)  + '(' + (newIerarhLevelMatr[rightInc[i][j]][1] + 1)+ ')' + ',';
-          } else str2 += (rightInc[i][j] + 1) + '(' + (newIerarhLevelMatr[rightInc[i][j]][1] + 1) + ')';
+        for (let i = 0; i < intersection.length; i++) {
+          notUsedV.splice(intersection[i], 1);
         }
 
+      } else {
+        topologiesArray[sizeTopologiesArray].push(notUsedV[0]);
+        notUsedV.splice(0, 1);
       }
 
-    str2 += '}' + '<br>';
+      sizeTopologiesArray++;
+
+    }
+
+    showLeftIncidentMatrix(array);
+
+    let str1 = 'Топологическая декомпозиция' + '<br>';
+
+    for (let i = 0; i < topologiesArray.length; i++) {
+
+      str1 += 'Сильный связанный подграф (' + i + ')={';
+      for (let j = 0; j < topologiesArray[i].length; j++) {
+        if (j !== topologiesArray[i].length - 1) {
+          str1 += (topologiesArray[i][j] + 1) + ',';
+        } else str1 += '(' + (topologiesArray[i][j])  + ')';
+      }
+
+      str1 += '}' + '<br>';
+    }
+
+    str1 += '<br>';
+    document.writeln(str1);
+
   }
 
-  document.writeln(str2);
-  array = [];
+
 }
+
 
 $calculation.addEventListener('click', calculat);
 
-let test = () => {
-
-  let testMatr = new Array(10);
-  for (let i = 0; i < 10; i++) {
-    testMatr[i] = new Array(10);
-  }
-
-
-  for (let i = 0; i < 10; i++) {
-    for (let j = 0; j < 10; j++) {
-      testMatr[i][j] = 0;
-    }
-  }
-
-  testMatr[0][1] = 1;
-  testMatr[0][6] = 1;
-  testMatr[1][2] = 1;
-  testMatr[1][3] = 1;
-  testMatr[4][3] = 1;
-  testMatr[5][2] = 1;
-  testMatr[5][3] = 1;
-  testMatr[6][1] = 1;
-  testMatr[7][5] = 1;
-  testMatr[7][6] = 1;
-  testMatr[8][1] = 1;
-  testMatr[9][4] = 1;
-  testMatr[9][6] = 1;
-  testMatr[9][7] = 1;
-  testMatr[9][8] = 1;
-
-  let matrSmej = testMatr;
-
-  let ierarhLevelMatr = [];
-  let ierarhMatr = new Array(matrSmej.length);
-  let notUsedV = matrSmej.length;
-  ierarhLevelMatr.push([]);
-
-  for (let i = 0; i < matrSmej.length; i++) {
-    ierarhMatr[i] = new Array(matrSmej.length);
-  }
-
-  for (let i = 0; i < matrSmej.length; i++) {
-    for (let j = 0; j < matrSmej[i].length; j++) {
-      ierarhMatr[i][j] = 0;
-    }
-  }
-
-  for (let i = 0; i < matrSmej.length; i++) {//поиск нулевого иерархического уровня
-    for (let j = 0; j < matrSmej[i].length; j++) {
-      if (matrSmej[j][i] === 0) {
-        if (j === (matrSmej.length - 1)) {
-          ierarhLevelMatr[0].push(i);
-          notUsedV--;
-        }
-      } else break;
-    }
-  }
-
-  let flag = true;
-  ierarhLevelMatr.push([]);
-
-  for (let i = 0; i < ierarhLevelMatr[0].length; i++) {//поиск первого иерархического уровня
-    for (let j = 0; j < matrSmej.length; j++) {
-
-      flag = true;
-
-      if (matrSmej[ierarhLevelMatr[0][i]][j] === 1) {
-        for (let k = 0; k < matrSmej.length; k++) {
-          if (matrSmej[k][j] === 1 && k !== ierarhLevelMatr[0][i]) {
-            flag = false;
-            break;
-          }
-        }
-
-        if (flag === true) {
-          ierarhLevelMatr[1].push(j);
-          notUsedV--;
-        }
+/*function getTopologiesRightInc(matrSmej, topologiesArray){
+  let arrayV = [];
+  for(let i = 0; i < topologiesArray.length; i++){
+    for(let j = 0; j <topologiesArray[i].length; j++){
+      if(matrSmej[j][]){
 
       }
     }
   }
 
-  console.log(ierarhLevelMatr[1]);
-  let lastLevel = 0;
+  return arrayV;
+}*/
 
-  while (notUsedV !== 0) {//пока не использованы все вершины
+//показать множиство левых инциденций
+function showLeftIncidentMatrix(leftInc) {
+  let str = 'Множество левых инциденций' + '<br>';
 
-    ierarhLevelMatr.push([]);
-    lastLevel++;
+  for (let i = 0; i < leftInc.length; i++) {
 
-    for (let i = 0; i < ierarhLevelMatr[lastLevel].length; i++) { //проходим по вершинам последнего иерархического уровня
-      for (let j = 0; j < matrSmej.length; j++) {//проходим по столбцам вершина матрицы последнего иерархического уровня     j  - столбец
-        flag = false;
-        if (matrSmej[ierarhLevelMatr[lastLevel][i]][j] === 1) {//если нашли вершину смежную с матрицей последнего иерархического уровня
-          flag = true;
-          for (let k = 0; k < matrSmej.length; k++) {//проходим по строкам  k - строка
-            if (matrSmej[k][j] === 1 && k !== ierarhLevelMatr[lastLevel][i]) {//если нашли вершину из матрицы иерархических уровней
-              flag = false;
-              for (let n = 0; n < (ierarhLevelMatr.length - 1); n++) {//проходимся по строкам матрицы иерархических уровней не включая последний пустой уровень
-                for (let m = 0; m < ierarhLevelMatr[n].length; m++) {//проходимся по столбцам матрицы иерархических уровеней
-                  if (k === ierarhLevelMatr[n][m]) {//нашли в матрице иерархических уровней вершину
-                    flag = true;
-                    break;
-                  }
-                }
-                if (flag === true) {
-                  break;
-                }
-              }
-            }
-            if (flag === false) {
-              break;
-            }
-          }
+    str += 'G+(' + (i + 1) + ')' + '={';
+
+    if (leftInc[i].length === 0) {
+      str += '';
+    } else
+      for (let j = 0; j < leftInc[i].length; j++) {
+        if (leftInc[i][j] !== undefined) {
+          if (j !== leftInc[i].length - 1) {
+            str += (leftInc[i][j] + 1) + ',';
+          } else str += (leftInc[i][j] + 1) + ')';
         }
-        if (flag === true) {
-          ierarhLevelMatr[lastLevel + 1].push(j);
-          notUsedV--;
+
+      }
+    str += "<br>";
+  }
+  document.writeln(str);
+}
+
+//показать множиство правых инциденций
+function showRightIncidentMatrix(rightInc) {
+  let str = 'Множество правых инциденций' + '<br>';
+
+  for (let i = 0; i < rightInc.length; i++) {
+
+    str += 'G+(' + (i + 1) + ')' + '={';
+
+    if (rightInc[i].length === 0) {
+      str += '';
+    } else
+      for (let j = 0; j < rightInc[i].length; j++) {
+        if (rightInc[i][j] !== undefined) {
+          if (j !== rightInc[i].length - 1) {
+            str += (rightInc[i][j] + 1) + ',';
+          } else str += (rightInc[i][j] + 1) + ')';
         }
+
       }
-    }
+    str += "<br>";
   }
+  document.writeln(str);
+}
 
-  let newIerarhLevelMatr = [];
-  let pos = 0;
-
-  for (let i = 0; i < ierarhLevelMatr.length; i++) {
-    for (let j = 0; j < ierarhLevelMatr[i].length; j++) {
-      newIerarhLevelMatr.push([pos++, ierarhLevelMatr[i][j]]);
-    }
-  }
-
-  let newRow = 0;
-  let newColumn = 0;
-
-  for (let i = 0; i < matrSmej.length; i++) {
-    for (let k = 0; k < matrSmej.length; k++) {
-      if (newIerarhLevelMatr[k][1] === i) {
-        newRow = newIerarhLevelMatr[k][0];
-        break;
-      }
-    }
-    for (let j = 0; j < matrSmej.length; j++) {
-      if (matrSmej[i][j] === 1) {
-        for (let m = 0; m < matrSmej.length; m++) {
-          if (newIerarhLevelMatr[m][1] === j) {
-            newColumn = newIerarhLevelMatr[m][0];
-            break;
-          }
-        }
-        ierarhMatr[newRow][newColumn] = 1;
-      }
-    }
-  }
-
-  let rightInc = new Array(ierarhMatr.length);
+//получить матрицу правых инциденций
+function getRightIncidentMatrix(matrix) {
+  let rightInc = new Array(matrix.length);
 
   for (let i = 0; i < matrSmej.length; i++) {
     rightInc[i] = [];
@@ -487,56 +285,173 @@ let test = () => {
 
   for (let i = 0; i < matrSmej.length; i++) {
     for (let j = 0; j < matrSmej.length; j++) {
-      if (ierarhMatr[i][j] === 1) {
+      if (matrix[i][j] === 1) {
         rightInc[i].push(j);
       }
     }
   }
+  return rightInc;
+}
 
-  let str1 = 'Иерархические уровни' + '<br>';
-
-  let sizeMatr = 1;
-  for (let i = 0; i < ierarhLevelMatr.length; i++) {
-
-    str1 += 'Уровень ' + i + '={';
-
-    if (ierarhLevelMatr[i].length === 0) {
-      str1 += '';
-    } else {
-      for (let j = 0; j < ierarhLevelMatr[i].length; j++) {
-        if (j !== ierarhLevelMatr[i].length - 1) {
-          str1 += sizeMatr + '(' + (ierarhLevelMatr[i][j] + 1) + ')' + ',';
-        } else str1 += sizeMatr + '(' + (ierarhLevelMatr[i][j] + 1) + ')';
-        sizeMatr++;
+//взять матрицу достяимости
+function getReachabilityMatrix(array) {
+  let reachabilityMatrix = array;
+  for (let k = 0; k < array.length; k++) {
+    for (let i = 0; i < array.length; i++) {
+      for (let j = 0; j < array.length; j++) {
+        if (array[i][j] === 0) {
+          if (array[k][j] === 1 && array[i][k] === 1) {
+            array[i][j] = 1;
+          }
+        }
       }
     }
-    str1 += '}' + '<br>';
   }
+  return reachabilityMatrix;
+}
 
-  str1 += '<br>';
-  document.writeln(str1);
+//проверить на контуры
+function checkForContours(adjacencyMatrix, matrixSize) {
+  for (let row = 0; row < matrixSize; row++) {
+    for (let column = 0; column < matrixSize; column++) {
+      if (adjacencyMatrix[row][column] === '1') {
+        let path = getPath(adjacencyMatrix, matrixSize, row, column)
+        if (path === null) {
+          return true
+        }
+      }
+    }
+  }
+  return false
+}
 
-  let str2 = 'Множество правых инциденций' + '<br>';
 
-  for (let i = 0; i < rightInc.length; i++) {
+// Получить путь в графе
+function getPath(adjacencyMatrix, matrixSize, firstRow, firstColumn) {
+  let vertices = []
+  vertices.push(firstRow + 1, firstColumn + 1)
 
-    str2 += 'G+(' + (i + 1) + '(' + (newIerarhLevelMatr[i][1] + 1) + ')' + ')' + '={';
+  // console.log("firstColumn")
+  // console.log(firstColumn)
+  let row = firstColumn
+  for (let column = 0; column < matrixSize; column++) {
+    if (adjacencyMatrix[row][column] === '1') {
+      // console.log(row)
+      // console.log(column)
+      let el = column
+      vertices.push(++el)
+      // если в массиве вершин есть повторяющиеся элементы (то есть появился контур) возвращаем null
+      if (hasDuplicates(vertices)) {
+        return null
+      } else {
+        row = column
+        column = -1
+      }
+    }
+  }
+  return vertices
+}
 
-    if (rightInc[i].length === 0) {
-      str2 += '';
-    } else
-      for (let j = 0; j < rightInc[i].length; j++) {
-        if (rightInc[i][j] !== undefined) {
-          if (j !== rightInc[i].length - 1) {
-            str2 += (rightInc[i][j] + 1)  + '(' + (newIerarhLevelMatr[rightInc[i][j]][1] + 1)+ ')' + ',';
-          } else str2 += (rightInc[i][j] + 1) + '(' + (newIerarhLevelMatr[rightInc[i][j]][1] + 1) + ')';
+
+function hasDuplicates(arr) {
+  // console.log(arr)
+  arr.sort();
+  // console.log("Отсортированный массив вершин")
+  // console.log(arr)
+
+  for (let i = 0; i < arr.length; i++) {
+    let index = i;
+    if (arr[i] === arr[++index]) {
+      return true
+    }
+  }
+  return false
+}
+
+
+function test(){
+  let matrSmej = [[0,1,0,0,1,1,0,0,0,0],
+  [1,0,0,0,0,0,0,0,0,0],
+  [0,1,0,1,1,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,1,0],
+  [1,0,0,0,0,0,1,0,0,0],
+  [0,0,0,0,1,0,0,1,0,1],
+  [0,0,0,1,0,0,0,0,0,0],
+  [0,0,0,0,0,0,1,0,0,1],
+  [0,0,0,0,0,0,1,0,0,0],
+  [0,0,0,0,0,0,0,1,0,0]];
+
+
+    let notUsedV = [];
+    let topologiesArray = [];
+    let reachabilityMatrix = getReachabilityMatrix(matrSmej);
+    let sizeTopologiesArray = 0;
+    console.log(reachabilityMatrix);
+
+    for (let i = 0; i < matrSmej.length; i++) {
+      notUsedV.push(i);
+    }
+
+    while (notUsedV.length !== 0) {
+      let achievable = [];  //достяжимые R
+      let contrAchievable = []; //контрдостяжимые Q
+
+      for (let i = 0; i < reachabilityMatrix.length; i++) {
+        if (reachabilityMatrix[notUsedV[0]][i] === 1) {
+          achievable.push(i);
+        }
+        if (reachabilityMatrix[i][notUsedV[0]] === 1 ) {
+          contrAchievable.push(i);
+        }
+      }
+      console.log(notUsedV + " notUsed");
+      console.log(achievable  +  " achievable");
+      console.log(contrAchievable  + " contrAchievable");
+
+      let intersection = achievable.filter(value => contrAchievable.includes(value));//пересечение
+
+      topologiesArray[sizeTopologiesArray] = [];
+
+
+      if (intersection.length !== 0) {
+
+        topologiesArray[sizeTopologiesArray].push(intersection);
+        console.log(intersection);
+
+        for (let i = 0; i < intersection.length; i++) {
+          notUsedV.splice(intersection[i - 1], 1);
         }
 
+      } else {
+        topologiesArray[sizeTopologiesArray].push(notUsedV[0]);
+        notUsedV.splice(0, 1);
       }
 
-    str2 += '}' + '<br>';
-  }
+      sizeTopologiesArray++;
 
-  document.writeln(str2);
+    }
+
+    showLeftIncidentMatrix(matrSmej);
+
+    let topologiesArray2 = [];
+
+    let str1 = 'Топологическая декомпозиция' + '<br>';
+
+    for (let i = 0; i < topologiesArray.length; i++) {
+
+      str1 += 'Сильный связанный подграф (' + i + ')={';
+      for (let j = 0; j < topologiesArray[i].length; j++) {
+        if (j !== topologiesArray[i].length - 1) {
+          str1 += (topologiesArray[i][j] + 1) + ',';
+        } else str1 +=  (topologiesArray[i][j]) ;
+      }
+
+      str1 += '}' + '<br>';
+    }
+
+    str1 += '<br>';
+    document.writeln(str1);
+
+
 
 }
