@@ -134,9 +134,12 @@ const calculat = () => {
     }
   }
 
-  let R = getR(matrSmej);
 
-  let E = getUnevenness(matrSmej);
+  let R = getR(matrSmej);
+  if(!checkForOriented(matrSmej)){
+   matrSmej = makeGraphNotOriented(matrSmej);
+  }
+  let E = getE(matrSmej);
 
 
   let str = "Структурная избыточность R: " + R
@@ -161,7 +164,6 @@ $calculation.addEventListener('click', calculat);
 
 //проверка на ориентирвоанность графа
 function checkForOriented(matrix){
-
   for (let i = 0; i < matrix.length; i++) {
     for (let j = 0; j < matrix.length; j++) {
       if(matrix[i][j] === matrix[j][i] && matrix[i][j] === 1){
@@ -169,8 +171,29 @@ function checkForOriented(matrix){
       }
     }
   }
-
   return false;
+}
+
+//возвращает неориентированный граф
+function makeGraphNotOriented(matrix){
+  let newMatrix = new Array(matrix.length);
+  for (let i = 0; i < matrix.length; i++){
+    newMatrix[i] = new Array(matrix.length);
+  }
+  for (let i = 0; i < matrix.length; i++) {
+    for (let j = 0; j < matrix.length; j++) {
+      newMatrix[i][j] = matrix[i][j];
+    }
+  }
+
+  for(let i = 0; i < matrix.length; i++){
+    for(let j = 0; j < matrix.length; j++){
+      if(matrix[i][j] === 1){
+        newMatrix[j][i] = 1;
+      }
+    }
+  }
+  return newMatrix;
 }
 
 function getR(matrix){
@@ -184,7 +207,7 @@ function getR(matrix){
   return R;
 }
 
-function getUnevenness(matrix){
+function getE(matrix){
   let e2 = 0;
   let countE = getEdge(matrix);
   for(let i = 0; i < matrix.length; i++){
@@ -209,9 +232,7 @@ function getEdge(matrix){
       }
     }
   }
-  if(checkForOriented(matrix))
-    return edge/2;
-  else return edge
+  return edge / 2;
 }
 
 
